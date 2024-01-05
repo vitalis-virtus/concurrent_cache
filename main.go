@@ -9,6 +9,7 @@ import (
 	"time"
 
 	v1 "github.com/vitalis-virtus/concurrent_cache/memo/v1"
+	v2 "github.com/vitalis-virtus/concurrent_cache/memo/v2"
 )
 
 var incomingURLs = []string{
@@ -25,9 +26,9 @@ var incomingURLs = []string{
 func main() {
 	memCacheV1 := v1.New(httpGetBody)
 
-	var n sync.WaitGroup
+	var nV1 sync.WaitGroup
 	for _, url := range incomingURLs {
-		n.Add(1)
+		nV1.Add(1)
 		go func(url string) {
 			start := time.Now()
 			value, err := memCacheV1.Get(url)
@@ -35,10 +36,27 @@ func main() {
 				log.Print(err)
 			}
 			fmt.Printf("%s, %s, %d байтов\n", url, time.Since(start), len(value.([]byte)))
-			n.Done()
+			nV1.Done()
 		}(url)
 	}
-	n.Wait()
+	nV1.Wait()
+
+	memCacheV2 := v2.New(httpGetBody)
+
+	var nV2 sync.WaitGroup
+	for _, url := range incomingURLs {
+		nV2.Add(1)
+		go func(url string) {
+			start := time.Now()
+			value, err := memCacheV2.Get(url)
+			if err != nil {
+				log.Print(err)
+			}
+			fmt.Printf("%s, %s, %d байтов\n", url, time.Since(start), len(value.([]byte)))
+			nV2.Done()
+		}(url)
+	}
+	nV2.Wait()
 }
 
 func httpGetBody(url string) (interface{}, error) {
